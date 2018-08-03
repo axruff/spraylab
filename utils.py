@@ -4,6 +4,7 @@ import os
 from time import time
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from PIL import Image
 
 
