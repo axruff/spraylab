@@ -18,12 +18,12 @@ from PIL import Image
 
 import multiprocessing as mp
 
-from correlation import compute_flow_area
+from correlation import compute_flow_area, get_spraying_events
 from utils import read_tiff, make_dir
 
 
 # top directory for processing results
-path_proc = 'proc/'
+path_proc = 'proc_new/'
 
 path_raw = path_proc +    'raw/'
 path_input = path_proc +  'input/'
@@ -44,6 +44,7 @@ def process_frame(frame_index):
     im_res.save(path + path_raw + str(frame).zfill(4) + '_orig_raw.tif')
 
     # Flat correction
+    flat = get_similar_flat(raw, sigma)
     im = np.log((flat.astype(float)  + 0.001) / (raw.astype(float)  + 0.001))
     im_res = Image.fromarray(im)
     im_res.save(path + path_input + str(frame).zfill(4) + '_flat_corr.tif')
@@ -99,8 +100,27 @@ def process_frame(frame_index):
     im_res = Image.fromarray(corr)
     im_res.save(path + path_corr + str(frame).zfill(4) +'_res_corr.tif')
 
+    
+def get_similar_flat(image, sigma):
+    diff_values = []
+    
+    image_low_pass = gaussian_filter(image, sigma=sigma)
+    
+    ixgrid = np.ix_(range(0,image.shape[0],100),range(0,image.shape[1],100))
+    
+    for fl in flats_low_pass:
+        diff_values.append(np.mean(np.abs(image_low_pass[ixgrid] - fl[ixgrid])))
+        
+    min_index = np.argmin(diff_values)
+    
+    return flats[min_index]
 
-# Read prepared dataset list    
+
+
+#----------------------------------------
+# Read dataset list  
+#----------------------------------------
+
 #with open ('datasets_list', 'rb') as fp:
 #    datasets_path_file_list = pickle.load(fp)
     
@@ -108,12 +128,14 @@ def process_frame(frame_index):
 
 
 
+debug_mode = False
+
+
 print('\n')
 print('--------------------------------------------')
 print(' Correlation Processing')
 print('--------------------------------------------')
 
-debug_mode = True
 
 #datasets_path_file_list = [('/Users/aleksejersov/data/spray/0_25', 'test.tif')]
 
@@ -131,7 +153,7 @@ path_025 = u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasdue
 
 file_name = 'OP_1bar_25C_100bar_25C.tif'
              
-path = path_025_no_trans
+path = path_025
 
 print('\n')
 print('Data path:', path)
@@ -169,8 +191,9 @@ if not debug_mode:
     start_indexes, end_indexes = get_spraying_events(images, max_read_images-1, sigma=15, min_brigthness=15, range_diff_value=0.5)
     
     # Correct start indexes
-    start_indexes = [21, 301, 582, 862, 1143, 1423, 1703, 1983, 2263, 2543, 2823] # 023_1
+    #start_indexes = [21, 301, 582, 862, 1143, 1423, 1703, 1983, 2263, 2543, 2823] # 023_1
     #start_indexes = [22, 302, 582, 862, 1143, 1422, 1703, 1982, 2263, 2542, 2824] # 025_1
+    start_indexes = [21, 301, 582, 862, 1143] # 023_1
 else:
     start_indexes = [21, 301, 582]
     end_indexes = [21+80, 301+80, 582+80]
@@ -181,6 +204,26 @@ print(end_indexes)
 #print('Durations', np.array(end_indexes) - np.array(start_indexes))
 
 
+#-------------------------------------
+# Adaptive flat field correction
+#-------------------------------------
+
+# Get all flats
+sigma = 15          # sigma for low-pass filtering
+flat_num = 18       # number of flats prior to each shot
+
+flats = []
+flats_low_pass = []
+
+# For all shots
+for i in range(len(start_indexes)):
+    # Extract flats (images before start index)
+    for k in range(start_indexes[i]-flat_num, start_indexes[i]):
+        flats.append(images[k])
+        flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
+
+        
+
 # Arrays to store the integrated results
 image_shape = images[0].shape
 #amp_res_list = np.empty(image_shape)
@@ -190,23 +233,26 @@ flow_x_res_list = np.empty(image_shape)
 flow_y_res_list = np.empty(image_shape)
 
 
-# Flat field correction
+# DEPRICATED: Flat field correction using average over all flats
 # get flats (first frame indicated by start_indexes)
-flats = images[0: start_indexes[0]-1]
+#flats = images[0: start_indexes[0]-1]
 
 # average flats
-flat = np.mean(flats, axis=0)
+#flat = np.mean(flats, axis=0)
 
-im_res = Image.fromarray(flat)
-im_res.save(path + path_proc + 'flat.tif')
+#im_res = Image.fromarray(flat)
+#im_res.save(path + path_proc + 'flat.tif')
 
 
 # Construct list of frames for processing from multiple spray shot events
 if not debug_mode:
     shot_events = [0,1,2,3,4]
+    #shot_events = [0]
 else:
     shot_events = [0,1,2]
 
+    
+    
 frames = []
 batch_size = 40
 every_nth = 1
@@ -230,11 +276,11 @@ start = time.time()
 #process_frame(30)
 
 
-if not debug_mode:
-    pool = mp.Pool(processes=35)
-    results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
-    pool.close()
-    pool.join()
+
+pool = mp.Pool(processes=35)
+results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
+pool.close()
+pool.join()
 
 
 
