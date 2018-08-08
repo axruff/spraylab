@@ -31,6 +31,7 @@ path_amp = path_proc +    'amp/'
 path_flow_x = path_proc + 'flow_x/'
 path_flow_y = path_proc + 'flow_y/'
 path_corr = path_proc +   'corr/'
+path_width = path_proc +  'width/'
 
 
 def process_frame(frame_index):
@@ -78,7 +79,7 @@ def process_frame(frame_index):
 
 
     # Compute cropped region
-    amp, vx, vy, corr = compute_flow_area(im, window_size, xmin, xmax, ymin, ymax)
+    amp, vx, vy, corr, width = compute_flow_area(im, window_size, xmin, xmax, ymin, ymax)
 
     # Collect results
     #amp_res_list = np.stack((amp_res_list, amp), axis=0)
@@ -99,6 +100,9 @@ def process_frame(frame_index):
 
     im_res = Image.fromarray(corr)
     im_res.save(path + path_corr + str(frame).zfill(4) +'_res_corr.tif')
+    
+    im_res = Image.fromarray(width)
+    im_res.save(path + path_width + str(frame).zfill(4) +'_res_width.tif')
 
     
 def get_similar_flat(image, sigma):
@@ -159,17 +163,15 @@ print('\n')
 print('Data path:', path)
 print('Data file name:', file_name, '\n\n')
 
-max_read_images = 1500    
+max_read_images = 150 #1500    
 
 # Read dataset
 print('Reading multi-tiff file', max_read_images, 'images')
 
 start = time.time()
-if not debug_mode:
-    images = read_tiff(path + file_name, max_read_images)
-else:
-    s = (10,10)
-    images = np.array([np.zeros(s), np.zeros(s), np.zeros(s)])
+
+images = read_tiff(path + file_name, max_read_images)
+
 end = time.time()
 
 print('Finished reading')
@@ -182,6 +184,7 @@ make_dir(path + path_amp)
 make_dir(path + path_flow_x)
 make_dir(path + path_flow_y)
 make_dir(path + path_corr)
+make_dir(path + path_width)
 
 
 # Analyze frames inside a dataset, get events starting and ending points as frame numbers
@@ -195,8 +198,8 @@ if not debug_mode:
     #start_indexes = [22, 302, 582, 862, 1143, 1422, 1703, 1982, 2263, 2542, 2824] # 025_1
     start_indexes = [21, 301, 582, 862, 1143] # 023_1
 else:
-    start_indexes = [21, 301, 582]
-    end_indexes = [21+80, 301+80, 582+80]
+    start_indexes = [21]
+    end_indexes = [21+80]
 
 print('Done')
 print(start_indexes)
@@ -249,7 +252,7 @@ if not debug_mode:
     shot_events = [0,1,2,3,4]
     #shot_events = [0]
 else:
-    shot_events = [0,1,2]
+    shot_events = [0]
 
     
     
@@ -273,14 +276,14 @@ print('\n')
 print('Start computations of', len(frames), 'frames')
 start = time.time()
 
-#process_frame(30)
+
+process_frame(40)
 
 
-
-pool = mp.Pool(processes=35)
-results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
-pool.close()
-pool.join()
+#pool = mp.Pool(processes=35)
+#results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
+#pool.close()
+#pool.join()
 
 
 

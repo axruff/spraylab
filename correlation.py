@@ -6,7 +6,12 @@ from scipy.ndimage import label
 from scipy.ndimage import imread
 from scipy.signal import fftconvolve
 from scipy.ndimage.filters import gaussian_filter
+
 from skimage.feature import peak_local_max
+from skimage.morphology import watershed
+from skimage.measure import regionprops
+#from skimage.filter import sobel
+
 import matplotlib.pyplot as plt
 
 from PIL import Image
@@ -78,7 +83,7 @@ def crop(im, center, window):
 
 def compute_flow(corr):
     
-    corr = gaussian_filter(corr, 1.0)
+    #corr = gaussian_filter(corr, 1.0)
     
     # indexes of local maxima peaks
     maxima_ind = peak_local_max(corr, min_distance=1, num_peaks=7)
@@ -88,7 +93,7 @@ def compute_flow(corr):
     #maxima = np.sort(corr[maxima_ind[:,0], maxima_ind[:,1]])
     
     if (len(maxima) == 1):
-        return 0.,0.,0.,0.
+        return 0.,0.,0.,0.,0.
 
     v1 = maxima[-2]
     v2 = maxima[-3]
@@ -115,12 +120,40 @@ def compute_flow(corr):
         index = index2
 
     #print index 
+    
+    # --------------------------------------
+    # Peak width analysis
+    # --------------------------------------
+     # Manual markers
+    #markers = np.zeros_like(corr)
+    #markers[index1[0], index1[1]] = 5
+    #markers[index2[0], index2[1]] = 10
+    #
+    ## Test 2: Watershed on edges via Sobel 
+    #edges = sobel(corr-0.00001)
+    #labels = watershed(edges, markers)
+    #
+    #max_peak_label = labels[index[0], index[1]]
+    #
+    #props = regionprops(labels.astype(int))
+    #peak_area = 0   
+    #for reg in props:
+    #    if reg.label == max_peak_label:
+    #        peak_area = reg.area   
+            
+    
+    # Test  
+    w = int(corr.shape[0] / 2) + 1
 
+    n = corr[w-1-1:w+1,w-1-1:w+1]
+    avg_n = (np.sum(n) - 1.0) / 8.0
+    
+           
     x, y = index[1], index[0]
     vec = math.ceil(y - corr.shape[0] / 2.0), math.ceil(x - corr.shape[1] / 2.)
     corr = corr[y, x]
     
-    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr
+    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr, avg_n
 
 
 
@@ -132,6 +165,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     dy = np.zeros(shape)
     amp = np.zeros(shape)
     corr = np.zeros(shape)
+    peak_width = np.zeros(shape)
     errors = np.zeros(shape)
     for y in range(ymin, ymax):
         for x in range(xmin, xmax):
@@ -141,7 +175,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             #try:
                 
             # Compute flow from the autocorrelation map
-            vp, xp, yp, c = compute_flow(c)
+            vp, xp, yp, c, w = compute_flow(c)
 
             #if (vp > 15):
             #    xp = yp = vp = 0
@@ -153,6 +187,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             dy[y - ymin, x - xmin] = yp
             amp[y - ymin, x - xmin] = vp
             corr[y - ymin, x - xmin] = c
+            peak_width[y - ymin, x - xmin] = w
 
 
 
@@ -171,7 +206,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     elapsed = time() - start
     #print("Time elapsed: ", elapsed)
 
-    return amp, dx, dy, corr
+    return amp, dx, dy, corr, peak_width
 
 
 def get_spraying_events(images, n_images, sigma=15, min_brigthness=15, range_diff_value=0.4):
