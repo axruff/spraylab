@@ -90,18 +90,11 @@ def compute_flow(corr):
 
     maxima = sorted(corr[maxima_ind[:,0], maxima_ind[:,1]])
     
-    #maxima = np.sort(corr[maxima_ind[:,0], maxima_ind[:,1]])
-    
     if (len(maxima) == 1):
         return 0.,0.,0.,0.,0.
 
     v1 = maxima[-2]
     v2 = maxima[-3]
-    
-    # threshold correlation
-    #if (v1 < 0.15 and v2  < 0.15):
-    #    return 0.,0.,0.,0.
-        
 
     # select indexes of two peaks
     index1 = np.where(corr == v1)
@@ -141,9 +134,7 @@ def compute_flow(corr):
     #    if reg.label == max_peak_label:
     #        peak_area = reg.area   
             
-    
-    # Test  
-    w = int(corr.shape[0] / 2) + 1
+    w = int(corr.shape[0] / 2) + 1 # patch center
 
     n = corr[w-1-1:w+1,w-1-1:w+1]
     avg_n = (np.sum(n) - 1.0) / 8.0
