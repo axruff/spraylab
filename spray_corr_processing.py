@@ -170,7 +170,7 @@ def get_similar_flat(image, sigma):
 #----------------------------------------
 
 # Read dataset list
-with open ('datasets_list', 'rb') as fp:
+with open ('datasets_list_remain', 'rb') as fp:
     dataset_list = pickle.load(fp)
 
 print('In total {0:d} datasets'.format(len(dataset_list)))
@@ -192,8 +192,8 @@ proc_count = 0
 #----------------------------------------
 # Select dataset for processing
 #----------------------------------------
-for dt in dataset_list[0:2]:
-#for dt in dataset_list:
+#for dt in dataset_list[0:2]:
+for dt in dataset_list:
   
     date = dt[0]
     dataset = dt[1]
@@ -250,12 +250,13 @@ for dt in dataset_list[0:2]:
     print('\nAnalyzing spraying shots')
 
     if not debug_mode:
-        start_indexes, end_indexes = get_spraying_events(images, max_read_images-1, sigma=15, min_brigthness=15, range_diff_value=0.5)
+        #start_indexes, end_indexes = get_spraying_events(images, max_read_images-1, sigma=15, min_brigthness=15, range_diff_value=0.5)
 
         # Correct start indexes
         #start_indexes = [21, 301, 582, 862, 1143, 1423, 1703, 1983, 2263, 2543, 2823] # 023_1
         #start_indexes = [22, 302, 582, 862, 1143, 1422, 1703, 1982, 2263, 2542, 2824] # 025_1
         start_indexes = [21, 301, 582, 862, 1143] # 023_1
+        end_indexes   = [21+80, 301+80, 582+80, 862+80, 1143+80] # 023_1
     else:
         start_indexes = [21]
         end_indexes = [21+80]
