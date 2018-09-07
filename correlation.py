@@ -165,7 +165,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             #try:
                 
             # Compute flow from the autocorrelation map
-            vp, xp, yp, c, w = compute_flow(c)
+            vp, xp, yp, c = compute_flow(c)
 
             #if (vp > 15):
             #    xp = yp = vp = 0
