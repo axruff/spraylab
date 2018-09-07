@@ -91,7 +91,7 @@ def compute_flow(corr):
     maxima = sorted(corr[maxima_ind[:,0], maxima_ind[:,1]])
     
     if (len(maxima) == 1):
-        return 0.,0.,0.,0.,0.
+        return 0.,0.,0.,0.
 
     v1 = maxima[-2]
     v2 = maxima[-3]
