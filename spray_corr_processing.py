@@ -24,7 +24,8 @@ from utils import read_tiff, make_dir
 
 
 # top directory for processing results
-path_proc = 'proc_18_08_10/'
+#path_proc = 'proc_18_08_10/'
+path_proc = 'proc/'
 
 path_raw = path_proc +    'raw/'
 path_input = path_proc +  'input/'
@@ -39,7 +40,7 @@ def read_files_save_as_multitiff_stack(path, file_name):
     files = sorted([f for f in listdir(path) if isfile(join(path, f))])
     print(len(files))
     
-    print(PIL.version.__version__)
+    #print(PIL.version.__version__)
 
     imlist = []
     for f in files:
@@ -53,7 +54,7 @@ def read_files_save_as_multitiff_stack(path, file_name):
         im = Image.open(path + f, mode='r')
         np_im = np.array(im)
         imlist.append(Image.fromarray(np_im))
-        im.fp.close()
+        #im.fp.close()
 
 
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
@@ -89,8 +90,14 @@ def process_frame(frame_index):
     im_res.save(path + path_raw + str(frame).zfill(4) + '_orig_raw.tif')
 
     # Flat correction
-    flat = get_similar_flat(raw, sigma)
-    im = np.log((flat.astype(float)  + 0.001) / (raw.astype(float)  + 0.001))
+
+    if use_adaptive_flats: 
+        flat = get_similar_flat(raw, sigma)
+        im = np.log((flat.astype(float)  + 0.001) / (raw.astype(float)  + 0.001))
+    else:
+        # Used for simulation with a known mean intensity
+        im = np.log((266.0  + 0.001) / (raw.astype(float)  + 0.001))
+        
     im_res = Image.fromarray(im)
     im_res.save(path + path_input + str(frame).zfill(4) + '_flat_corr.tif')
 
@@ -118,12 +125,20 @@ def process_frame(frame_index):
     #ymin = 200
     #ymax = 250
 
+    xmin = 0
+    xmax = 251
+    ymin = 0
+    ymax = 251
+
     #plt.imshow(im[ymin:ymax, xmin:xmax], vmin=-0.5, vmax=0.5, cmap='gray')
     #plt.show()
 
 
     # Compute cropped region
-    amp, vx, vy, corr, width = compute_flow_area(im, window_size, xmin, xmax, ymin, ymax)
+    #amp, vx, vy, corr = compute_flow_area(im, window_size, xmin, xmax, ymin, ymax)
+
+    # Compute full image
+    amp, vx, vy, corr = compute_flow_area(im, int(window_size), int(window_size / 2), int(im.shape[1] - window_size / 2) , int(window_size / 2), int(im.shape[0] - window_size / 2))
 
     # Collect results
     #amp_res_list = np.stack((amp_res_list, amp), axis=0)
@@ -145,8 +160,8 @@ def process_frame(frame_index):
     im_res = Image.fromarray(corr)
     im_res.save(path + path_corr + str(frame).zfill(4) +'_res_corr.tif')
     
-    im_res = Image.fromarray(width)
-    im_res.save(path + path_width + str(frame).zfill(4) +'_res_width.tif')
+    #im_res = Image.fromarray(width)
+    #im_res.save(path + path_width + str(frame).zfill(4) +'_res_width.tif')
 
     
 def get_similar_flat(image, sigma):
@@ -170,11 +185,11 @@ def get_similar_flat(image, sigma):
 #----------------------------------------
 
 # Read dataset list
-with open ('datasets_list_remain', 'rb') as fp:
-    dataset_list = pickle.load(fp)
-
-print('In total {0:d} datasets'.format(len(dataset_list)))
-
+#with open ('datasets_list_020', 'rb') as fp:
+#    dataset_list = pickle.load(fp)
+#
+#print('In total {0:d} datasets'.format(len(dataset_list)))
+#
 
 
 debug_mode = False
@@ -193,16 +208,18 @@ proc_count = 0
 # Select dataset for processing
 #----------------------------------------
 #for dt in dataset_list[0:2]:
-for dt in dataset_list:
+#for dt in dataset_list:
+
+for x in range(1):
   
-    date = dt[0]
-    dataset = dt[1]
-    region = dt[2]
-    path = dt[3]
-    path = path.replace('\\', '/')
-    path = path.replace('y:', '/mnt/LSDF')
-    path+='/'
-    file_name = dt[4]
+    #date = dt[0]
+    #dataset = dt[1]
+    #region = dt[2]
+    #path = dt[3]
+    #path = path.replace('\\', '/')
+    #path = path.replace('y:', '/mnt/LSDF')
+    #path+='/'
+    #file_name = dt[4]
 
     #path_023 = u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasduese/Nachtschicht 09.3 auf 10.3/023_1/Ansicht 0°/OP_1bar_25°C_100bar_25°C/Z2.5Y0/'
     #path_025_no_trans = u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasduese/Nachtschicht 09.3 auf 10.3/025_1/Ansicht 0°/OP_1bar_25°C_100bar_25°C/Z2.5Y0/'
@@ -210,6 +227,12 @@ for dt in dataset_list:
 
     #file_name = 'OP_1bar_25C_100bar_25C.tif'
     #path = path_025
+
+    date = 'today'
+    dataset = 'sim1'
+    region = ''
+    file_name = 'multiexposure_seq_thr100_200_slices.tif'
+    path = u'/mnt/LSDF/projects/pn-reduction/ershov/'
 
     print('\n')
     print('Date:', date)
@@ -219,7 +242,8 @@ for dt in dataset_list:
     print('Data file name:', file_name)
     
 
-    max_read_images = 1500    
+    #max_read_images = 1500    
+    max_read_images = 200
 
     # Read dataset
     print('Reading multi-tiff file', max_read_images, 'images')
@@ -255,8 +279,14 @@ for dt in dataset_list:
         # Correct start indexes
         #start_indexes = [21, 301, 582, 862, 1143, 1423, 1703, 1983, 2263, 2543, 2823] # 023_1
         #start_indexes = [22, 302, 582, 862, 1143, 1422, 1703, 1982, 2263, 2542, 2824] # 025_1
-        start_indexes = [21, 301, 582, 862, 1143] # 023_1
-        end_indexes   = [21+80, 301+80, 582+80, 862+80, 1143+80] # 023_1
+
+        #start_indexes = [21, 301, 582, 862, 1143] # 023_1
+        #end_indexes   = [21+80, 301+80, 582+80, 862+80, 1143+80] # 023_1
+
+        #Simulation
+        start_indexes = [1] 
+        end_indexes   = [200] 
+
     else:
         start_indexes = [21]
         end_indexes = [21+80]
@@ -273,19 +303,22 @@ for dt in dataset_list:
     # Adaptive flat field correction
     #-------------------------------------
 
-    # Get all flats
-    sigma = 15          # sigma for low-pass filtering
-    flat_num = 18       # number of flats prior to each shot
+    use_adaptive_flats = False
 
-    flats = []
-    flats_low_pass = []
+    if use_adaptive_flats:
+        # Get all flats
+        sigma = 15          # sigma for low-pass filtering
+        flat_num = 18       # number of flats prior to each shot
 
-    # For all shots
-    for i in range(len(start_indexes)):
-        # Extract flats (images before start index)
-        for k in range(start_indexes[i]-flat_num, start_indexes[i]):
-            flats.append(images[k])
-            flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
+        flats = []
+        flats_low_pass = []
+
+        # For all shots
+        for i in range(len(start_indexes)):
+            # Extract flats (images before start index)
+            for k in range(start_indexes[i]-flat_num, start_indexes[i]):
+                flats.append(images[k])
+                flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
 
 
 
@@ -311,15 +344,15 @@ for dt in dataset_list:
 
     # Construct list of frames for processing from multiple spray shot events
     if not debug_mode:
-        shot_events = [0,1,2,3,4]
-        #shot_events = [0]
+        #shot_events = [0,1,2,3,4]
+        shot_events = [0]
     else:
         shot_events = [0]
 
 
 
     frames = []
-    batch_size = 40
+    batch_size = 200#40
     every_nth = 1
 
     for i in shot_events:
@@ -327,7 +360,8 @@ for dt in dataset_list:
         end = end_indexes[i]
         c = int(start + (end - start) / 2)
         frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
-        
+
+    frames = [0,1,2,3]    
     print(frames)
 
     #----------------------------------------
@@ -341,14 +375,14 @@ for dt in dataset_list:
     start = time.time()
 
 
-    #process_frame(40)
+    process_frame(0)
 
 
-    pool = mp.Pool(processes=35)
-    results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
-    pool.close()
-    pool.join()
-
+    #pool = mp.Pool(processes=35)
+    #results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
+    #pool.close()
+    #pool.join()
+#
     end = time.time()
     print('Computation is finished')
     print ('Time elapsed: ', (end-start))
