@@ -134,17 +134,17 @@ def compute_flow(corr):
     #    if reg.label == max_peak_label:
     #        peak_area = reg.area   
             
-    w = int(corr.shape[0] / 2) + 1 # patch center
+    #w = int(corr.shape[0] / 2) + 1 # patch center
 
-    n = corr[w-1-1:w+1,w-1-1:w+1]
-    avg_n = (np.sum(n) - 1.0) / 8.0
+    #n = corr[w-1-1:w+1,w-1-1:w+1]
+    #avg_n = (np.sum(n) - 1.0) / 8.0
     
            
     x, y = index[1], index[0]
     vec = math.ceil(y - corr.shape[0] / 2.0), math.ceil(x - corr.shape[1] / 2.)
     corr = corr[y, x]
     
-    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr, avg_n
+    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr
 
 
 
@@ -156,8 +156,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     dy = np.zeros(shape)
     amp = np.zeros(shape)
     corr = np.zeros(shape)
-    peak_width = np.zeros(shape)
-    errors = np.zeros(shape)
+
     for y in range(ymin, ymax):
         for x in range(xmin, xmax):
             a = crop(image, (y, x), window)
@@ -178,7 +177,6 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             dy[y - ymin, x - xmin] = yp
             amp[y - ymin, x - xmin] = vp
             corr[y - ymin, x - xmin] = c
-            peak_width[y - ymin, x - xmin] = w
 
 
 
@@ -197,7 +195,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     elapsed = time() - start
     #print("Time elapsed: ", elapsed)
 
-    return amp, dx, dy, corr, peak_width
+    return amp, dx, dy, corr
 
 
 def get_spraying_events(images, n_images, sigma=15, min_brigthness=15, range_diff_value=0.4):
