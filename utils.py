@@ -34,6 +34,20 @@ def read_tiff(path, n_images):
 
     return np.array(images)
 
+def read_images_from_directory(path):
+    files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    print('Number of images in directory:', len(files))
+
+    imlist = []
+    for f in files:
+        #im = np.array(Image.open(p + f))
+        #imlist.append(Image.fromarray(m))
+        with Image.open(path + f) as im:
+            np_im = np.array(im)
+            imlist.append(np_im)
+
+    return np.array(imlist)
+
 def scan_directory_tree(rootDir):
     
     path_list = []
