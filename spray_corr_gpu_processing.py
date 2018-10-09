@@ -37,8 +37,8 @@ corr_exec     = 'autocorr'
 path_flow_input = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr/data/'
 input_frame_file = 'frame_corr.raw'
 
-path_proc = 'proc/'
-path_temp = path_proc +'temp/'
+#path_proc = 'proc/'
+#path_temp = path_proc +'temp/'
 
 clean = True
 use_adaptive_flats = True
@@ -67,6 +67,9 @@ def process_frame_gpu(frame_n):
     # Crop frame
     im = im[y0:y0+h, x0:x0+w]
     #flat = flat[y0:y0+h, x0:x0+w]
+    
+    im_res = Image.fromarray(im)
+    im_res.save(output_path + str(frame_n).zfill(3) + 'corr-flat.tif')
 
     # Flip, so the motion is to the right
     if flipped:
@@ -134,9 +137,11 @@ def read_raw_files_save_as_multitiff_stack(path, file_name, shape, mask=""):
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
 
     
-def read_files_save_as_multitiff_stack(path, file_name):
-    files = sorted([f for f in listdir(path) if isfile(join(path, f))])
-    print(len(files))
+def read_files_save_as_multitiff_stack(path, file_name, mask=""):
+    if mask == "":
+        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    else:
+        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
     
     #print(PIL.version.__version__)
 
@@ -156,11 +161,20 @@ def read_files_save_as_multitiff_stack(path, file_name):
 
 
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
+    
+    
+    
 
-    print('Convertion to multitiff is done')
-    
-    
-    
+#----------------------------------------
+# Make dataset list  
+#----------------------------------------
+
+#datasets = ['17_3_18_1', '17_3_23_1', '17_3_5_1', '17_3_7_3']
+#regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+
+regions = ['0', '2.5', '5', '7.5', '10']
+#regions = ['15']
+        
 
 print('\n')
 print('--------------------------------------------')
@@ -183,22 +197,25 @@ proc_count = 0
 #for dt in dataset_list[0:2]:
 #for dt in dataset_list:
 
-for x in range(1):
+# For all regions
+for r in regions:
     
     dataset = '17_3_7_3'
-    region = '0'
-    file_name = dataset + '_Tile_d' +region+'_short.tif'
-    dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/17_3_7_3/'
+    region = r
+    file_name = dataset + '_Tile_d' +region+'.tif'
+    dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/' + dataset + '/'
     
-
     print('\n')
     print('Dataset:', dataset)
     print('Region:', region)
-    print('Data path:', dataset_path)
-    print('Data file name:', file_name)
+    #print('Data path:', dataset_path)
+    #print('Data file name:', file_name)
+    
+    path_proc = dataset + '_Tile_d' +region + '/'
+    path_temp = path_proc +'temp/'
     
 
-    max_read_images = 50
+    max_read_images = 3348
 
     # Read dataset
     print('Reading multi-tiff file', max_read_images, 'images')
@@ -218,10 +235,11 @@ for x in range(1):
     make_dir(output_path)
         
         
-    #Simulation
-    start_indexes = [42] 
-    end_indexes   = np.array(start_indexes) + 80
-    shot_events = [0]
+    # Events start and end
+    start_indexes = np.arange(66,3300, 225)
+    end_indexes   = start_indexes + 80
+    shot_events = range(10)
+    #shot_events = [0]
     
     
     #-------------------------------------
@@ -233,33 +251,36 @@ for x in range(1):
     if use_adaptive_flats:
         # Get all flats
         sigma = 15          # sigma for low-pass filtering
-        flat_num = 18       # number of flats prior to each shot
+        flat_num = 20       # number of flats prior to each shot
 
         flats = []
         flats_low_pass = []
 
         # For all shots
-        for i in range(len(start_indexes)):
+        for i in range(len(shot_events)):
             # Extract flats (images before start index)
             for k in range(start_indexes[i]-flat_num, start_indexes[i]):
                 flats.append(images[k])
                 flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
-                
+      
+    print('Total flats: ', len(flats))
+    print('Number of shots: ', len(shot_events))
+    
                 
     # Make frames list            
     frames = []
     batch_size = 70 #40
     every_nth = 1
 
-    #for i in shot_events:
-    #    start = start_indexes[i]
-    #    end = end_indexes[i]
-    #    c = int(start + (end - start) / 2)
-    #    frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
-    #    
+    for i in shot_events:
+        start = start_indexes[i]
+        end = end_indexes[i]
+        c = int(start + (end - start) / 2)
+        frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
         
-    frames = [43,44,45]    
-    print(frames)
+        
+    #frames = [43,44,45]    
+    #print('Frames:', frames)
     
     
     print('\n')
@@ -283,6 +304,7 @@ for x in range(1):
     read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_corr_seq.tif', (h,w), 'corr-coeff')
     read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flow_x_seq.tif', (h,w), 'corr-flow-x')
     read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flow_y_seq.tif', (h,w), 'corr-flow-y')
+    read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flat_seq.tif', 'corr-flat')
     
     
     # Clean output folder
