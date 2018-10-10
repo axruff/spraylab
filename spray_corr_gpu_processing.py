@@ -69,7 +69,7 @@ def process_frame_gpu(frame_n):
     #flat = flat[y0:y0+h, x0:x0+w]
     
     im_res = Image.fromarray(im)
-    im_res.save(output_path + str(frame_n).zfill(3) + 'corr-flat.tif')
+    im_res.save(output_path + str(frame_n).zfill(4) + 'corr-flat.tif')
 
     # Flip, so the motion is to the right
     if flipped:
@@ -82,7 +82,7 @@ def process_frame_gpu(frame_n):
 
     # Run processing for a single frame  
 
-    command = [exec_path + corr_exec, path_flow_input + input_frame_file , str(w), str(h), output_path, str(frame_n).zfill(3), str(gpu_num)]
+    command = [exec_path + corr_exec, path_flow_input + input_frame_file , str(w), str(h), output_path, str(frame_n).zfill(4), str(gpu_num)]
     subprocess.check_output(command)
     #subprocess.call(command)
 
@@ -162,7 +162,16 @@ def read_files_save_as_multitiff_stack(path, file_name, mask=""):
 
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
     
-    
+
+def save_seq_as_multitiff_stack(images, file_name):
+    imlist = []
+    for i in range(len(images)):
+
+        imlist.append(Image.fromarray(images[i]))
+        #im.fp.close()
+
+
+    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
     
 
 #----------------------------------------
@@ -173,7 +182,7 @@ def read_files_save_as_multitiff_stack(path, file_name, mask=""):
 #regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
 
 regions = ['0', '2.5', '5', '7.5', '10']
-#regions = ['15']
+regions = ['0']
         
 
 print('\n')
@@ -236,7 +245,7 @@ for r in regions:
         
         
     # Events start and end
-    start_indexes = np.arange(66,3300, 225)
+    start_indexes = np.arange(66,3300, 220)
     end_indexes   = start_indexes + 80
     shot_events = range(10)
     #shot_events = [0]
@@ -265,6 +274,10 @@ for r in regions:
       
     print('Total flats: ', len(flats))
     print('Number of shots: ', len(shot_events))
+    
+    save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')
+    
+    sys.exit()
     
                 
     # Make frames list            
@@ -300,11 +313,11 @@ for r in regions:
     print('Collecting results')
     
     # Collect results
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_amp_seq.tif', (h,w), 'corr-amp')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_corr_seq.tif', (h,w), 'corr-coeff')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flow_x_seq.tif', (h,w), 'corr-flow-x')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flow_y_seq.tif', (h,w), 'corr-flow-y')
-    read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_flat_seq.tif', 'corr-flat')
+    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_amp_seq.tif', (h,w), 'corr-amp')
+    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_corr_seq.tif', (h,w), 'corr-coeff')
+    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_x_seq.tif', (h,w), 'corr-flow-x')
+    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_y_seq.tif', (h,w), 'corr-flow-y')
+    read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flat_seq.tif', 'corr-flat')
     
     
     # Clean output folder
