@@ -182,7 +182,8 @@ def save_seq_as_multitiff_stack(images, file_name):
 #regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
 
 regions = ['0', '2.5', '5', '7.5', '10']
-regions = ['0']
+#regions = ['0','2.5']
+start_events_offsets = np.array([0,2,4,6,8])
         
 
 print('\n')
@@ -245,9 +246,15 @@ for r in regions:
         
         
     # Events start and end
-    start_indexes = np.arange(66,3300, 220)
-    end_indexes   = start_indexes + 80
-    shot_events = range(10)
+    
+    spray_duration = 94
+    spray_events_separation = 224
+    
+    current_offset = start_events_offsets[regions.index(r)]
+    
+    start_indexes = np.arange(66,3300, spray_events_separation) + current_offset
+    end_indexes   = start_indexes + spray_duration
+    shot_events = range(14)
     #shot_events = [0]
     
     
@@ -261,6 +268,7 @@ for r in regions:
         # Get all flats
         sigma = 15          # sigma for low-pass filtering
         flat_num = 20       # number of flats prior to each shot
+        flat_offset = 20       # offset from the start of spraying
 
         flats = []
         flats_low_pass = []
@@ -268,21 +276,19 @@ for r in regions:
         # For all shots
         for i in range(len(shot_events)):
             # Extract flats (images before start index)
-            for k in range(start_indexes[i]-flat_num, start_indexes[i]):
+            for k in range(start_indexes[i]-flat_num-flat_offset, start_indexes[i]-flat_offset):
                 flats.append(images[k])
                 flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
       
     print('Total flats: ', len(flats))
     print('Number of shots: ', len(shot_events))
     
-    save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')
-    
-    sys.exit()
+    save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')  
     
                 
     # Make frames list            
     frames = []
-    batch_size = 70 #40
+    batch_size = 50 #40
     every_nth = 1
 
     for i in shot_events:
@@ -295,6 +301,8 @@ for r in regions:
     #frames = [43,44,45]    
     #print('Frames:', frames)
     
+    selected_images = images[frames]
+    save_seq_as_multitiff_stack(selected_images, dataset_path + path_proc + 'all_input.tif') 
     
     print('\n')
     print('Start computations of', len(frames), 'frames')
