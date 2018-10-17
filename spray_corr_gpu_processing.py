@@ -179,11 +179,14 @@ def save_seq_as_multitiff_stack(images, file_name):
 #----------------------------------------
 
 #datasets = ['17_3_18_1', '17_3_23_1', '17_3_5_1', '17_3_7_3']
-#regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+datasets = ['17_3_18_1']
+regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
 
-regions = ['0', '2.5', '5', '7.5', '10']
+#regions = ['0', '2.5', '5', '7.5', '10']
+#regions = ['12.5', '15', '17.5', '20']
 #regions = ['0','2.5']
-start_events_offsets = np.array([0,2,4,6,8])
+#start_events_offsets = np.array([0,2,4,6,8])
+start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
         
 
 print('\n')
@@ -205,133 +208,134 @@ proc_count = 0
 # Select dataset for processing
 #----------------------------------------
 #for dt in dataset_list[0:2]:
-#for dt in dataset_list:
+for dt in datasets:
 
-# For all regions
-for r in regions:
-    
-    dataset = '17_3_7_3'
-    region = r
-    file_name = dataset + '_Tile_d' +region+'.tif'
-    dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/' + dataset + '/'
-    
-    print('\n')
-    print('Dataset:', dataset)
-    print('Region:', region)
-    #print('Data path:', dataset_path)
-    #print('Data file name:', file_name)
-    
-    path_proc = dataset + '_Tile_d' +region + '/'
-    path_temp = path_proc +'temp/'
-    
+    # For all regions
+    for r in regions:
 
-    max_read_images = 3348
+        dataset = dt
+        region = r
+        file_name = dataset + '_Tile_d' +region+'.tif'
+        dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/' + dataset + '/'
 
-    # Read dataset
-    print('Reading multi-tiff file', max_read_images, 'images')
+        print('\n')
+        print('Dataset:', dataset)
+        print('Region:', region)
+        #print('Data path:', dataset_path)
+        #print('Data file name:', file_name)
 
-    start = time.time()
+        path_proc = dataset + '_Tile_d' +region + '/'
+        path_temp = path_proc +'temp/'
 
 
-    images = read_tiff(dataset_path + file_name, max_read_images)
+        max_read_images = 3348
 
-    end = time.time()
+        # Read dataset
+        print('Reading multi-tiff file', max_read_images, 'images')
 
-    print('Finished reading')
-    print('Time elapsed: ', (end-start))
-    
-    output_path = dataset_path + path_temp
-    
-    make_dir(output_path)
-        
-        
-    # Events start and end
-    
-    spray_duration = 94
-    spray_events_separation = 224
-    
-    current_offset = start_events_offsets[regions.index(r)]
-    
-    start_indexes = np.arange(66,3300, spray_events_separation) + current_offset
-    end_indexes   = start_indexes + spray_duration
-    shot_events = range(14)
-    #shot_events = [0]
-    
-    
-    #-------------------------------------
-    # Adaptive flat field correction
-    #-------------------------------------
+        start = time.time()
 
-    use_adaptive_flats = True
 
-    if use_adaptive_flats:
-        # Get all flats
-        sigma = 15          # sigma for low-pass filtering
-        flat_num = 20       # number of flats prior to each shot
-        flat_offset = 20       # offset from the start of spraying
+        images = read_tiff(dataset_path + file_name, max_read_images)
 
-        flats = []
-        flats_low_pass = []
+        end = time.time()
 
-        # For all shots
-        for i in range(len(shot_events)):
-            # Extract flats (images before start index)
-            for k in range(start_indexes[i]-flat_num-flat_offset, start_indexes[i]-flat_offset):
-                flats.append(images[k])
-                flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
-      
-    print('Total flats: ', len(flats))
-    print('Number of shots: ', len(shot_events))
-    
-    save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')  
-    
-                
-    # Make frames list            
-    frames = []
-    batch_size = 50 #40
-    every_nth = 1
+        print('Finished reading')
+        print('Time elapsed: ', (end-start))
 
-    for i in shot_events:
-        start = start_indexes[i]
-        end = end_indexes[i]
-        c = int(start + (end - start) / 2)
-        frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
-        
-        
-    #frames = [43,44,45]    
-    #print('Frames:', frames)
-    
-    selected_images = images[frames]
-    save_seq_as_multitiff_stack(selected_images, dataset_path + path_proc + 'all_input.tif') 
-    
-    print('\n')
-    print('Start computations of', len(frames), 'frames')
-    start = time.time()
-    
-    
-    for i in tqdm(frames):
-        process_frame_gpu(i)
-        
-    
-    end = time.time()
-    print('Computation is finished')
-    print ('Time elapsed: ', (end-start))
-    
-    print('\n')
-    print('Collecting results')
-    
-    # Collect results
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_amp_seq.tif', (h,w), 'corr-amp')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_corr_seq.tif', (h,w), 'corr-coeff')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_x_seq.tif', (h,w), 'corr-flow-x')
-    read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_y_seq.tif', (h,w), 'corr-flow-y')
-    read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flat_seq.tif', 'corr-flat')
-    
-    
-    # Clean output folder
-    if clean:
-        #os.system('rm ' + output_path +'*')
-        os.system('rm -r ' + output_path)
-        
-    
-    print('OK')
+        output_path = dataset_path + path_temp
+        path_flow_input = output_path
+
+        make_dir(output_path)
+
+
+        # Events start and end
+
+        spray_duration = 94
+        spray_events_separation = 224
+
+        current_offset = start_events_offsets[regions.index(r)]
+
+        start_indexes = np.arange(66,3300, spray_events_separation) + current_offset
+        end_indexes   = start_indexes + spray_duration
+        shot_events = range(14)
+        #shot_events = [0]
+
+
+        #-------------------------------------
+        # Adaptive flat field correction
+        #-------------------------------------
+
+        use_adaptive_flats = True
+
+        if use_adaptive_flats:
+            # Get all flats
+            sigma = 15          # sigma for low-pass filtering
+            flat_num = 20       # number of flats prior to each shot
+            flat_offset = 20       # offset from the start of spraying
+
+            flats = []
+            flats_low_pass = []
+
+            # For all shots
+            for i in range(len(shot_events)):
+                # Extract flats (images before start index)
+                for k in range(start_indexes[i]-flat_num-flat_offset, start_indexes[i]-flat_offset):
+                    flats.append(images[k])
+                    flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
+
+        print('Total flats: ', len(flats))
+        print('Number of shots: ', len(shot_events))
+
+        save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')  
+
+
+        # Make frames list            
+        frames = []
+        batch_size = 50 #40
+        every_nth = 1
+
+        for i in shot_events:
+            start = start_indexes[i]
+            end = end_indexes[i]
+            c = int(start + (end - start) / 2)
+            frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
+
+
+        #frames = [43,44,45]    
+        #print('Frames:', frames)
+
+        selected_images = images[frames]
+        save_seq_as_multitiff_stack(selected_images, dataset_path + path_proc + 'all_input.tif') 
+
+        print('\n')
+        print('Start computations of', len(frames), 'frames')
+        start = time.time()
+
+
+        for i in tqdm(frames):
+            process_frame_gpu(i)
+
+
+        end = time.time()
+        print('Computation is finished')
+        print ('Time elapsed: ', (end-start))
+
+        print('\n')
+        print('Collecting results')
+
+        # Collect results
+        read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_amp_seq.tif', (h,w), 'corr-amp')
+        read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_corr_seq.tif', (h,w), 'corr-coeff')
+        read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_x_seq.tif', (h,w), 'corr-flow-x')
+        read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_y_seq.tif', (h,w), 'corr-flow-y')
+        read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flat_seq.tif', 'corr-flat')
+
+
+        # Clean output folder
+        if clean:
+            #os.system('rm ' + output_path +'*')
+            os.system('rm -r ' + output_path)
+
+
+        print('OK')
