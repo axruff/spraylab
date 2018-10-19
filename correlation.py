@@ -2,6 +2,8 @@ import numpy as np
 import math
 from time import time
 
+from tqdm import tqdm
+
 from scipy.ndimage import label
 from scipy.ndimage import imread
 from scipy.signal import fftconvolve
@@ -81,6 +83,44 @@ def crop(im, center, window):
     return im[int(center[0]-window/2):int(center[0]+window/2), int(center[1]-window/2):int(center[1]+window/2)]
 
 
+def get_peak_height(c,x0,y0,vx,vy):
+    
+    if vx <= 0:
+        return 0.0
+
+    dist = math.sqrt(vx**2 + vy**2)
+    #print('Dist', dist)
+    s = vx / dist
+
+    xs = np.arange(s, vx, s)
+
+    min_value = 1000
+
+    #profile = []
+    for xi in xs:
+        yi = (vy / vx)*xi
+
+        x = math.floor(xi)
+        y = math.floor(yi)
+
+        dx = xi - x
+        dy = yi - y
+
+        val = (1.0-dx)*(1.0-dy)*c[y0+y,x0+x] + (1.0-dx)*dy*c[y0+y+1,x0+x] +dx*(1.0-dy)*c[y0+y,x0+x+1] + dx*dy*c[y0+y+1,x0+x+1]
+
+        if val < min_value:
+            min_value = val
+
+        #profile.append(val)
+
+    selected_peak = c[y0+vy,x0+vx]
+    #print(selected_peak)   
+    #print(profile)
+    peak_height = selected_peak - min_value
+
+    return peak_height
+
+
 def compute_flow(corr):
     
     #corr = gaussian_filter(corr, 1.0)
@@ -91,7 +131,7 @@ def compute_flow(corr):
     maxima = sorted(corr[maxima_ind[:,0], maxima_ind[:,1]])
     
     if (len(maxima) == 1):
-        return 0.,0.,0.,0.
+        return 0.,0.,0.,0.,0.
 
     v1 = maxima[-2]
     v2 = maxima[-3]
@@ -142,9 +182,15 @@ def compute_flow(corr):
            
     x, y = index[1], index[0]
     vec = math.ceil(y - corr.shape[0] / 2.0), math.ceil(x - corr.shape[1] / 2.)
+    # Get peak height
+    p = get_peak_height(corr,int(corr.shape[0]/2.0),int(corr.shape[1]/2.0),vec[1],vec[0])
+    
     corr = corr[y, x]
     
-    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr
+    
+    
+    return np.sqrt(np.dot(vec, vec)), vec[1], vec[0], corr, p
+
 
 
 
@@ -156,8 +202,9 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     dy = np.zeros(shape)
     amp = np.zeros(shape)
     corr = np.zeros(shape)
+    peak_h = np.zeros(shape)
 
-    for y in range(ymin, ymax):
+    for y in tqdm(range(ymin, ymax)):
         for x in range(xmin, xmax):
             a = crop(image, (y, x), window)
             c = fftconvolve(a, a[::-1, ::-1], mode='full') / np.sum(a ** 2)
@@ -165,7 +212,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             #try:
                 
             # Compute flow from the autocorrelation map
-            vp, xp, yp, c = compute_flow(c)
+            vp, xp, yp, c, ph = compute_flow(c)
 
             #if (vp > 15):
             #    xp = yp = vp = 0
@@ -177,6 +224,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
             dy[y - ymin, x - xmin] = yp
             amp[y - ymin, x - xmin] = vp
             corr[y - ymin, x - xmin] = c
+            peak_h[y - ymin, x - xmin] = ph
 
 
 
@@ -195,7 +243,7 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
     elapsed = time() - start
     #print("Time elapsed: ", elapsed)
 
-    return amp, dx, dy, corr
+    return amp, dx, dy, corr, peak_h
 
 
 def get_spraying_events(images, n_images, sigma=15, min_brigthness=15, range_diff_value=0.4):
@@ -351,7 +399,7 @@ def my_find_peaks(image, min_distance, peak_threshold=0.01, show=False):
                 indexes_x.append(j) # coorect 
                 indexes_y.append(i)
                 values.append(val)
-                
+               
             max_res[i,j] = max_val # not needed
             
 
