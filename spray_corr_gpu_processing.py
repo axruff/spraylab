@@ -1,5 +1,4 @@
 # coding: utf-8
-
 import numpy as np
 import sys
 import math
@@ -31,10 +30,10 @@ from correlation import compute_flow_area, get_spraying_events
 from utils import read_tiff, make_dir
 
 
-exec_path     = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr/'
+exec_path     = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr-concert/'
 corr_exec     = 'autocorr'
 
-path_flow_input = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr/data/'
+#path_flow_input = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr/data/'
 input_frame_file = 'frame_corr.raw'
 
 #path_proc = 'proc/'
@@ -179,8 +178,10 @@ def save_seq_as_multitiff_stack(images, file_name):
 #----------------------------------------
 
 #datasets = ['17_3_18_1', '17_3_23_1', '17_3_5_1', '17_3_7_3']
-datasets = ['17_3_18_1']
+datasets = ['17_3_23_1']
 regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+
+#regions = ['20']
 
 #regions = ['0', '2.5', '5', '7.5', '10']
 #regions = ['12.5', '15', '17.5', '20']
@@ -188,6 +189,7 @@ regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
 #start_events_offsets = np.array([0,2,4,6,8])
 start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
         
+#start_events_offsets = np.array([16])
 
 print('\n')
 print('--------------------------------------------')
@@ -330,7 +332,7 @@ for dt in datasets:
         read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_x_seq.tif', (h,w), 'corr-flow-x')
         read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_y_seq.tif', (h,w), 'corr-flow-y')
         read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flat_seq.tif', 'corr-flat')
-
+        read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_peak_seq.tif', (h,w), 'corr-peak-h')
 
         # Clean output folder
         if clean:
