@@ -177,18 +177,20 @@ def save_seq_as_multitiff_stack(images, file_name):
 # Make dataset list  
 #----------------------------------------
 
+# Experiment: 2018_09_ersf_mi1516
 #datasets = ['17_3_18_1', '17_3_23_1', '17_3_5_1', '17_3_7_3']
-datasets = ['17_3_23_1']
-regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+#datasets = ['17_3_23_1']
+#regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+#start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
 
-#regions = ['20']
 
-#regions = ['0', '2.5', '5', '7.5', '10']
-#regions = ['12.5', '15', '17.5', '20']
-#regions = ['0','2.5']
-#start_events_offsets = np.array([0,2,4,6,8])
-start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
-        
+# Experiment: 2018_03_ersf_mi1315
+datasets = ['007_1']
+#datasets = ['018_1']
+regions = ['Z0Y0', 'Z2.5Y0', 'Z5Y0']
+start_events_offsets = np.array([0,2,4])
+
+
 #start_events_offsets = np.array([16])
 
 print('\n')
@@ -219,10 +221,18 @@ for dt in datasets:
         region = r
         file_name = dataset + '_Tile_d' +region+'.tif'
         dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/' + dataset + '/'
-
+        
+        file_name = 'OP_1bar_25C_100bar_25C.tif'
+        dataset_path = (u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasduese/Nachtschicht 10.3 auf 11.3/'
+                        + dataset +
+        '/OP_1bar_25°C_100bar_25°C/' + 
+                        region + '/')
+        
         print('\n')
         print('Dataset:', dataset)
         print('Region:', region)
+        
+        print(dataset_path)
         #print('Data path:', dataset_path)
         #print('Data file name:', file_name)
 
@@ -230,7 +240,11 @@ for dt in datasets:
         path_temp = path_proc +'temp/'
 
 
-        max_read_images = 3348
+        #max_read_images = 3348 # 2018_09_ersf_mi1516
+        max_read_images = 2882 # 2018_03_ersf_mi1315
+        
+        #max_read_images = 10
+        
 
         # Read dataset
         print('Reading multi-tiff file', max_read_images, 'images')
@@ -241,6 +255,7 @@ for dt in datasets:
         images = read_tiff(dataset_path + file_name, max_read_images)
 
         end = time.time()
+        
 
         print('Finished reading')
         print('Time elapsed: ', (end-start))
@@ -250,18 +265,22 @@ for dt in datasets:
 
         make_dir(output_path)
 
-
-        # Events start and end
-
+        # Experiment: 2018_09_ersf_mi1516
         spray_duration = 94
         spray_events_separation = 224
-
+        
+        # Experiment: 2018_03_ersf_mi1315
+        spray_duration = 90
+        spray_events_separation = 280
+        
+        
         current_offset = start_events_offsets[regions.index(r)]
-
-        start_indexes = np.arange(66,3300, spray_events_separation) + current_offset
+        start_indexes = np.arange(66,3300, spray_events_separation) + current_offset # Experiment: 2018_09_ersf_mi1516
+        start_indexes = np.arange(23,2800, spray_events_separation) + current_offset # Experiment: 2018_03_ersf_mi1315
         end_indexes   = start_indexes + spray_duration
-        shot_events = range(14)
-        #shot_events = [0]
+        shot_events = range(14) # Experiment: 2018_09_ersf_mi1516
+        shot_events = range(10) # Experiment: 2018_03_ersf_mi1315
+ 
 
 
         #-------------------------------------
@@ -273,8 +292,14 @@ for dt in datasets:
         if use_adaptive_flats:
             # Get all flats
             sigma = 15          # sigma for low-pass filtering
+            
+            # Experiment: 2018_09_ersf_mi1516
             flat_num = 20       # number of flats prior to each shot
             flat_offset = 20       # offset from the start of spraying
+            
+            # Experiment: 2018_03_ersf_mi1315
+            flat_num = 10       # number of flats prior to each shot
+            flat_offset = 10       # offset from the start of spraying
 
             flats = []
             flats_low_pass = []
@@ -289,7 +314,7 @@ for dt in datasets:
         print('Total flats: ', len(flats))
         print('Number of shots: ', len(shot_events))
 
-        save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif')  
+        save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif') 
 
 
         # Make frames list            
@@ -313,7 +338,6 @@ for dt in datasets:
         print('\n')
         print('Start computations of', len(frames), 'frames')
         start = time.time()
-
 
         for i in tqdm(frames):
             process_frame_gpu(i)
