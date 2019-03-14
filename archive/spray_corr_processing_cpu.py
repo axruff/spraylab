@@ -22,7 +22,6 @@ import multiprocessing as mp
 from correlation import compute_flow_area, get_spraying_events
 from utils import read_tiff, make_dir
 
-
 # top directory for processing results
 #path_proc = 'proc_18_08_10/'
 path_proc = 'proc/'
@@ -319,8 +318,7 @@ for x in range(1):
             for k in range(start_indexes[i]-flat_num, start_indexes[i]):
                 flats.append(images[k])
                 flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
-
-
+                               
 
     # Arrays to store the integrated results
     image_shape = images[0].shape
@@ -375,9 +373,11 @@ for x in range(1):
     start = time.time()
 
 
+    # Process single frame
     process_frame(0)
+    
 
-
+    # Computation using multithreading
     #pool = mp.Pool(processes=35)
     #results = [pool.apply_async(process_frame, args=(x,)) for x in frames]
     #pool.close()

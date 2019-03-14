@@ -40,7 +40,7 @@ input_frame_file = 'frame_corr.raw'
 #path_temp = path_proc +'temp/'
 
 clean = True
-use_adaptive_flats = True
+use_adaptive_flats = False
 flipped = False
 
 # Region of interest
@@ -49,6 +49,9 @@ y0 = 0
 w  = 1024
 h  = 512
 
+
+w  = 251
+h  = 251
 
 def process_frame_gpu(frame_n):
 
@@ -61,7 +64,8 @@ def process_frame_gpu(frame_n):
     else:
         flat = np.mean(images[1:], axis=0)
 
-    im = np.log((flat.astype(float)  + 0.001) / (im.astype(float)  + 0.001))
+    #im = np.log((flat.astype(float)  + 0.001) / (im.astype(float)  + 0.001))
+    im = np.log((1.0  + 0.001) / (im.astype(float)  + 0.001))
 
     # Crop frame
     im = im[y0:y0+h, x0:x0+w]
@@ -179,16 +183,25 @@ def save_seq_as_multitiff_stack(images, file_name):
 
 # Experiment: 2018_09_ersf_mi1516
 #datasets = ['17_3_18_1', '17_3_23_1', '17_3_5_1', '17_3_7_3']
-#datasets = ['17_3_23_1']
-#regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
-#start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
+
+#datasets = ['17.1_1_1', '17.2_2_3', '17_2_10_5', '17_2_9_3']
+datasets = ['17_2_10_5', '17_2_9_3']
+
+regions = ['0', '2.5', '5', '7.5', '10', '12.5', '15', '17.5', '20']
+start_events_offsets = np.array([0,2,4,6,8, 10,12,14,16])
 
 
 # Experiment: 2018_03_ersf_mi1315
-datasets = ['007_1']
+#datasets = ['007_1']
 #datasets = ['018_1']
-regions = ['Z0Y0', 'Z2.5Y0', 'Z5Y0']
-start_events_offsets = np.array([0,2,4])
+#regions = ['Z0Y0', 'Z2.5Y0', 'Z5Y0']
+#start_events_offsets = np.array([0,2,4])
+
+
+# Testing parameters scan
+datasets = ['params_scan']
+#regions = ['ei', 'mbs', 'md', 'mmi', 'mpi']
+regions = ['all']
 
 
 #start_events_offsets = np.array([16])
@@ -220,13 +233,18 @@ for dt in datasets:
         dataset = dt
         region = r
         file_name = dataset + '_Tile_d' +region+'.tif'
+        #file_name = dataset + '_d' +region+'.tif'
         dataset_path = u'/mnt/LSDF/projects/pn-reduction/2018_09_esrf_me1516/Phantom/' + dataset + '/'
         
-        file_name = 'OP_1bar_25C_100bar_25C.tif'
-        dataset_path = (u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasduese/Nachtschicht 10.3 auf 11.3/'
-                        + dataset +
-        '/OP_1bar_25°C_100bar_25°C/' + 
-                        region + '/')
+        #file_name = 'OP_1bar_25C_100bar_25C.tif'
+        #dataset_path = (u'/mnt/LSDF/projects/pn-reduction/2018_03_esrf_mi1325/Phantom/Glasduese/Nachtschicht 10.3 auf 11.3/'
+        #                + dataset +
+        #'/OP_1bar_25°C_100bar_25°C/' + 
+        #                region + '/')
+        
+        # Experiments: Params scan
+        dataset_path = u'/mnt/LSDF/projects/pn-reduction/ershov/' + dataset + '/'
+        file_name = dataset + 'watershed-param-scan-' +region+'.tif'    
         
         print('\n')
         print('Dataset:', dataset)
@@ -236,14 +254,16 @@ for dt in datasets:
         #print('Data path:', dataset_path)
         #print('Data file name:', file_name)
 
-        path_proc = dataset + '_Tile_d' +region + '/'
+        #path_proc = dataset + '_d' +region + '/'
+        #path_proc = dataset + '_Tile_d' +region + '/'
+        path_proc = dataset + '_param_' +region + '/'
         path_temp = path_proc +'temp/'
 
 
         #max_read_images = 3348 # 2018_09_ersf_mi1516
-        max_read_images = 2882 # 2018_03_ersf_mi1315
+        #max_read_images = 2882 # 2018_03_ersf_mi1315
         
-        #max_read_images = 10
+        max_read_images = 23
         
 
         # Read dataset
@@ -266,20 +286,21 @@ for dt in datasets:
         make_dir(output_path)
 
         # Experiment: 2018_09_ersf_mi1516
-        spray_duration = 94
-        spray_events_separation = 224
+        #spray_duration = 94
+        #spray_events_separation = 224
         
         # Experiment: 2018_03_ersf_mi1315
-        spray_duration = 90
-        spray_events_separation = 280
+        #spray_duration = 90
+        #spray_events_separation = 280
         
         
         current_offset = start_events_offsets[regions.index(r)]
         start_indexes = np.arange(66,3300, spray_events_separation) + current_offset # Experiment: 2018_09_ersf_mi1516
-        start_indexes = np.arange(23,2800, spray_events_separation) + current_offset # Experiment: 2018_03_ersf_mi1315
+        #start_indexes = np.arange(23,2800, spray_events_separation) + current_offset # Experiment: 2018_03_ersf_mi1315
+        
         end_indexes   = start_indexes + spray_duration
         shot_events = range(14) # Experiment: 2018_09_ersf_mi1516
-        shot_events = range(10) # Experiment: 2018_03_ersf_mi1315
+        #shot_events = range(10) # Experiment: 2018_03_ersf_mi1315
  
 
 
@@ -287,7 +308,7 @@ for dt in datasets:
         # Adaptive flat field correction
         #-------------------------------------
 
-        use_adaptive_flats = True
+        use_adaptive_flats = False
 
         if use_adaptive_flats:
             # Get all flats
@@ -298,8 +319,8 @@ for dt in datasets:
             flat_offset = 20       # offset from the start of spraying
             
             # Experiment: 2018_03_ersf_mi1315
-            flat_num = 10       # number of flats prior to each shot
-            flat_offset = 10       # offset from the start of spraying
+            #flat_num = 10       # number of flats prior to each shot
+            #flat_offset = 10       # offset from the start of spraying
 
             flats = []
             flats_low_pass = []
@@ -311,15 +332,16 @@ for dt in datasets:
                     flats.append(images[k])
                     flats_low_pass.append(gaussian_filter(images[k], sigma=sigma))
 
-        print('Total flats: ', len(flats))
-        print('Number of shots: ', len(shot_events))
+        #print('Total flats: ', len(flats))
+        #print('Number of shots: ', len(shot_events))
 
-        save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif') 
+        #save_seq_as_multitiff_stack(flats, dataset_path + path_proc + 'all_flats.tif') 
 
 
         # Make frames list            
         frames = []
         batch_size = 50 #40
+        #batch_size = 50 #40
         every_nth = 1
 
         for i in shot_events:
@@ -329,11 +351,14 @@ for dt in datasets:
             frames.extend(list(range(c-int(batch_size/2), c+int(batch_size/2), every_nth)))
 
 
-        #frames = [43,44,45]    
-        #print('Frames:', frames)
+        frames = range(23)   
+        print('Frames:', frames)
 
         selected_images = images[frames]
-        save_seq_as_multitiff_stack(selected_images, dataset_path + path_proc + 'all_input.tif') 
+        #save_seq_as_multitiff_stack(selected_images, dataset_path + path_proc + 'all_input.tif') 
+        
+        #print('OK. Next...')
+        #continue
 
         print('\n')
         print('Start computations of', len(frames), 'frames')
@@ -356,6 +381,7 @@ for dt in datasets:
         read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_x_seq.tif', (h,w), 'corr-flow-x')
         read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flow_y_seq.tif', (h,w), 'corr-flow-y')
         read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_flat_seq.tif', 'corr-flat')
+        read_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_res_seq.tif', 'corr-res')
         read_raw_files_save_as_multitiff_stack(output_path, dataset_path + path_proc + dataset +'_Tile_d' +region+'_peak_seq.tif', (h,w), 'corr-peak-h')
 
         # Clean output folder
