@@ -26,8 +26,9 @@ import multiprocessing as mp
 
 from tqdm import tqdm
 
-from correlation import compute_flow_area, get_spraying_events
-from utils import read_tiff, make_dir
+#from correlation import compute_flow_area
+from utils import *
+from numerics import smooth
 
 
 exec_path     = '/mnt/LSDF/anka-nc-cluster/home/ws/fe0968/autocorr-concert/'
@@ -105,76 +106,7 @@ def get_similar_flat(image, sigma):
     min_index = np.argmin(diff_values)
     
     return flats[min_index]
-
-def read_flow_from_components(file_u, file_v, shape):
-    u = np.fromfile(file_u, dtype='float32', sep="")
-    u = u.reshape(shape)
-    
-    v = np.fromfile(file_v, dtype='float32', sep="")
-    v = v.reshape(shape)
-    
-    return u,v
-
-def read_raw_image(file_name, shape):
-    img = np.fromfile(file_name, dtype='float32', sep="")
-    img = img.reshape(shape)
-    
-    return img
-    
-def read_raw_files_save_as_multitiff_stack(path, file_name, shape, mask=""):
-    if mask == "":
-        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
-    else:
-        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
-        
-    #print('Number of images to convert:', len(files))
-    
-    imlist = []
-    for f in files:
-        #im = np.array(Image.open(p + f))
-        #imlist.append(Image.fromarray(m))
-
-        np_im = read_raw_image(path + f, shape)
-        imlist.append(Image.fromarray(np_im))
-
-    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
-
-    
-def read_files_save_as_multitiff_stack(path, file_name, mask=""):
-    if mask == "":
-        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
-    else:
-        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
-    
-    #print(PIL.version.__version__)
-
-    imlist = []
-    for f in files:
-        #im = np.array(Image.open(p + f))
-        #imlist.append(Image.fromarray(m))
-        #print(path + f)
-        #with Image.open(path + f) as im:
-        #    np_im = np.array(im)
-        #    imlist.append(Image.fromarray(np_im))
-            
-        im = Image.open(path + f, mode='r')
-        np_im = np.array(im)
-        imlist.append(Image.fromarray(np_im))
-        #im.fp.close()
-
-
-    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
-    
-
-def save_seq_as_multitiff_stack(images, file_name):
-    imlist = []
-    for i in range(len(images)):
-
-        imlist.append(Image.fromarray(images[i]))
-        #im.fp.close()
-
-
-    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
+  
     
 
 #----------------------------------------
