@@ -4,11 +4,12 @@ import os
 import re
 from time import time
 
+from os import listdir
+from os.path import isfile, join
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from PIL import Image
-
-
 
 
 
@@ -92,3 +93,48 @@ def make_dir(path):
         pass
         #print ("Creation of the directory %s failed" % path)    
         
+
+def read_flow_from_components(file_u, file_v, shape):
+    u = np.fromfile(file_u, dtype='float32', sep="")
+    u = u.reshape(shape)
+    
+    v = np.fromfile(file_v, dtype='float32', sep="")
+    v = v.reshape(shape)
+    
+    return u,v
+
+
+def read_raw_image(file_name, shape):
+    img = np.fromfile(file_name, dtype='float32', sep="")
+    img = img.reshape(shape)
+    
+    return img
+
+def read_raw_files_save_as_multitiff_stack(path, file_name, shape, mask=""):
+    if mask == "":
+        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    else:
+        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
+        
+    #print('Number of images to convert:', len(files))
+    
+    imlist = []
+    for f in files:
+        #im = np.array(Image.open(p + f))
+        #imlist.append(Image.fromarray(m))
+
+        np_im = read_raw_image(path + f, shape)
+        imlist.append(Image.fromarray(np_im))
+
+    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
+    
+    
+def save_np_sequence_as_multitiff_stack(images, file_name):
+    
+    imlist = []
+    for i in range(len(images)):
+        imlist.append(Image.fromarray(images[i]))
+
+    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
+    
+    del imlist
