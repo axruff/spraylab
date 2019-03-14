@@ -110,24 +110,36 @@ def read_raw_image(file_name, shape):
     
     return img
 
+
 def read_raw_files_save_as_multitiff_stack(path, file_name, shape, mask=""):
     if mask == "":
         files = sorted([f for f in listdir(path) if isfile(join(path, f))])
     else:
         files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
-        
-    #print('Number of images to convert:', len(files))
     
     imlist = []
     for f in files:
-        #im = np.array(Image.open(p + f))
-        #imlist.append(Image.fromarray(m))
-
         np_im = read_raw_image(path + f, shape)
         imlist.append(Image.fromarray(np_im))
 
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
     
+    
+def read_files_save_as_multitiff_stack(path, file_name, mask=""):
+    if mask == "":
+        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    else:
+        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
+    
+    imlist = []
+    for f in files:      
+        im = Image.open(path + f, mode='r')
+        np_im = np.array(im)
+        imlist.append(Image.fromarray(np_im))
+        #im.fp.close()
+
+    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
+      
     
 def save_np_sequence_as_multitiff_stack(images, file_name):
     
@@ -138,3 +150,13 @@ def save_np_sequence_as_multitiff_stack(images, file_name):
     imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
     
     del imlist
+    
+    
+def save_seq_as_multitiff_stack(images, file_name):
+    imlist = []
+    for i in range(len(images)):
+
+        imlist.append(Image.fromarray(images[i]))
+        #im.fp.close()
+
+    imlist[0].save(file_name, save_all=True, append_images=imlist[1:])
