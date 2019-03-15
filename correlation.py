@@ -185,10 +185,28 @@ def compute_flow_area(image, window, xmin, xmax, ymin, ymax, axis_to_check=1, pe
 
     return amp, dx, dy, corr, peak_h
 
+def get_similar_flat(image, sigma):
+    diff_values = []
+    
+    image_low_pass = gaussian_filter(image, sigma=sigma)
+    
+    ixgrid = np.ix_(range(0,image.shape[0],100),range(0,image.shape[1],100))
+    
+    for fl in flats_low_pass:
+        diff_values.append(np.mean(np.abs(image_low_pass[ixgrid] - fl[ixgrid])))
+        
+    min_index = np.argmin(diff_values)
+    
+    return flats[min_index]
+  
+ 
 
 
+#---------------------------------------------------------------
+# Testing routines
+#---------------------------------------------------------------
 
-def my_correlation3(im, show=False):
+def test_correlation3(im, show=False):
     
     m = im.shape[0]
     n = im.shape[1]
@@ -222,7 +240,7 @@ def my_correlation3(im, show=False):
     return corr
 
 
-def my_find_peaks(image, min_distance, peak_threshold=0.01, show=False):
+def test_find_peaks(image, min_distance, peak_threshold=0.01, show=False):
     
     eps = 1e-4
     
@@ -284,7 +302,7 @@ def my_find_peaks(image, min_distance, peak_threshold=0.01, show=False):
 
 
 
-def my_select_peak(image, indexes_y, indexes_x, values, num_peaks= 5):
+def test_select_peak(image, indexes_y, indexes_x, values, num_peaks= 5):
     
     if (len(values) == 1):
         print('Warning: One peak!')
@@ -345,7 +363,7 @@ def my_select_peak(image, indexes_y, indexes_x, values, num_peaks= 5):
 
 
 # Compute correlation
-def my_correlation(im, show=False):
+def test_correlation(im, show=False):
     
     m = im.shape[0]
     n = im.shape[1]
@@ -394,7 +412,7 @@ def my_correlation(im, show=False):
 
 
 # Compute correlation
-def my_correlation_1d(im, show=False):
+def test_correlation_1d(im, show=False):
 
     m = im.shape[0]
     
