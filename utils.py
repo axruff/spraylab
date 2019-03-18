@@ -3,6 +3,7 @@ import math
 import os
 import re
 from time import time
+from tqdm import tqdm
 
 from os import listdir
 from os.path import isfile, join
@@ -33,9 +34,13 @@ def read_tiff(path, n_images):
 
     return np.array(images)
 
-def read_images_from_directory(path):
-    files = sorted([f for f in listdir(path) if isfile(join(path, f))])
-    print('Number of images in directory:', len(files))
+def read_images_from_directory(path, mask=''):
+
+    if mask == "":
+        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    else:
+        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
+ 
 
     imlist = []
     for f in files:
@@ -46,6 +51,25 @@ def read_images_from_directory(path):
             imlist.append(np_im)
 
     return np.array(imlist)
+
+def read_images_from_directory_statusbar(path, mask=''):
+
+    if mask == "":
+        files = sorted([f for f in listdir(path) if isfile(join(path, f))])
+    else:
+        files = sorted([f for f in listdir(path) if isfile(join(path, f)) and f.find(mask) != -1])
+ 
+
+    imlist = []
+    for f in tqdm(files):
+        #im = np.array(Image.open(p + f))
+        #imlist.append(Image.fromarray(m))
+        with Image.open(path + f) as im:
+            np_im = np.array(im)
+            imlist.append(np_im)
+
+    return np.array(imlist)
+
 
 def scan_directory_tree(rootDir):
     
@@ -107,7 +131,6 @@ def read_raw_image(file_name, shape):
     img = img.reshape(shape)
     
     return img
-
 
 def read_raw_files_save_as_multitiff_stack(path, file_name, shape, mask=""):
     if mask == "":
