@@ -67,7 +67,7 @@ x0 = p['image_size'][0]
 y0 = p['image_size'][1]             
 w  = p['image_size'][2]
 h  = p['image_size'][3]
-flipped = p['flat_mode']
+flipped = p['flip_image']
 
 clean_intermediate_results = p['clean_intermediate_results']
 
